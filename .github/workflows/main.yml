@@ -1,4 +1,4 @@
-name: PSE Data Collector
+name: RDN WYMIANA MIĘDZYSYSTEMOWA Data Collector
 
 on:
   schedule:
