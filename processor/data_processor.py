@@ -40,6 +40,14 @@ class OptimizedDataProcessor:
             return date_obj.strftime('%Y%m%d')
         except ValueError:
             raise ValueError(f"Nieprawidłowy format daty: {date_string}")
+    
+    def format_date_for_url_dashed(self, date_string: str) -> str:
+        """Konwertuje datę z formatu 'yyyy-MM-dd' na 'yyyy-MM-dd' (z myślnikami)."""
+        try:
+            date_obj = datetime.datetime.strptime(date_string, '%Y-%m-%d')
+            return date_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            raise ValueError(f"Nieprawidłowy format daty: {date_string}")
 
     def convert_to_utc(self, local_date: datetime.datetime) -> datetime.datetime:
         """Konwertuje datę lokalną na UTC."""
@@ -61,10 +69,21 @@ class OptimizedDataProcessor:
         # Przetwarzanie CSV z pamięci
         csv_reader = csv.DictReader(io.StringIO(content_str), delimiter=';')
 
+        row_count = 0
         for row in csv_reader:
+            row_count += 1
             processed_row = self._process_row(row)
             if processed_row:
                 processed_data.append(processed_row)
+
+        print(f"🔍 DEBUG: Przeczytano {row_count} wierszy z CSV")
+        print(f"🔍 DEBUG: Przetworzono {len(processed_data)} wierszy do bazy")
+        
+        # Wyświetl szczegóły pierwszych 3 wierszy
+        if processed_data:
+            print(f"🔍 DEBUG: Szczegóły wierszy:")
+            for i, row in enumerate(processed_data[:3]):
+                print(f"  Wiersz {i+1}: Data={row.get('Data')}, Godzina={row.get('Godzina')}")
 
         return processed_data
 
@@ -145,7 +164,8 @@ class OptimizedDataProcessor:
                 return False
 
             data_start_utc = self.convert_to_utc(self.data_start_dt)
-            filtr = {'data_cet': data_start_utc}
+            # Filtr musi używać camelCase aby pasowało do bazy
+            filtr = {'dataCet': data_start_utc}
 
             # Sprawdzenie czy rekord już istnieje
             existing_record = self.mongo_connector.find_document(
@@ -154,8 +174,8 @@ class OptimizedDataProcessor:
             if existing_record is None:
                 # Wstawienie nowego rekordu
                 new_document = {
-                    'data_cet': data_start_utc,
-                    'data_wstawienia': datetime.datetime.now(pytz.UTC),
+                    'dataCet': data_start_utc,
+                    'dataWstawienia': datetime.datetime.now(pytz.UTC),
                     'dane': data
                 }
                 self.mongo_connector.insert_document(
@@ -165,7 +185,7 @@ class OptimizedDataProcessor:
                 # Aktualizacja istniejącego rekordu
                 update_data = {
                     '$set': {
-                        'czas_aktualizacji': datetime.datetime.now(pytz.UTC),
+                        'czasAktualizacji': datetime.datetime.now(pytz.UTC),
                         'dane': data
                     }
                 }

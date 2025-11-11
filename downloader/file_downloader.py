@@ -23,14 +23,22 @@ class OptimizedFileDownloader:
     def __init__(self, url_template: str, data_start: str, data_end: Optional[str] = None):
         self.url_template = url_template
         self.data_start = self.format_date_for_url(data_start)
+        self.data_start_dashed = self.format_date_dashed(data_start)
         self.data_end = self.format_date_for_url(data_end) if data_end else None
 
     @property
     def url(self) -> str:
         """Generuje pełny URL na podstawie podanych danych."""
         if self.data_end:
-            return self.url_template.format(data_start=self.data_start, data_end=self.data_end)
-        return self.url_template.format(data_start=self.data_start)
+            return self.url_template.format(
+                data_start=self.data_start, 
+                data_end=self.data_end,
+                data_start_dashed=self.data_start_dashed
+            )
+        return self.url_template.format(
+            data_start=self.data_start,
+            data_start_dashed=self.data_start_dashed
+        )
 
     @staticmethod
     def format_date_for_url(date_string: str) -> str:
@@ -41,6 +49,15 @@ class OptimizedFileDownloader:
         try:
             date_obj = datetime.strptime(date_string, '%Y-%m-%d')
             return date_obj.strftime('%Y%m%d')
+        except ValueError:
+            raise ValueError(f"Nieprawidłowy format daty: {date_string}")
+    
+    @staticmethod
+    def format_date_dashed(date_string: str) -> str:
+        """Konwertuje datę na format 'YYYY-MM-DD' (z myślnikami)."""
+        try:
+            date_obj = datetime.strptime(date_string, '%Y-%m-%d')
+            return date_obj.strftime('%Y-%m-%d')
         except ValueError:
             raise ValueError(f"Nieprawidłowy format daty: {date_string}")
 
@@ -83,6 +100,7 @@ class OptimizedFileDownloader:
         
         print(f"🚀 Rozpoczynam pobieranie pliku: {self.url}")
         print(f"⏰ Czas rozpoczęcia: {start_time.strftime('%H:%M:%S')}")
+        print(f"🔍 DEBUG: data_start={self.data_start}, data_end={self.data_end}")
         
         while retries < self.MAX_RETRIES:
             try:
@@ -99,6 +117,16 @@ class OptimizedFileDownloader:
                 if self.validate_response(response):
                     elapsed_time = datetime.now() - start_time
                     print(f"✅ Pobrano {len(response.content)} bajtów po {elapsed_time.total_seconds()/60:.1f} minutach")
+                    
+                    # DEBUG: Sprawdź liczbę wierszy w pliku
+                    try:
+                        content_str = response.content.decode('windows-1252')
+                        lines = content_str.strip().split('\n')
+                        print(f"🔍 DEBUG: Pobrano {len(lines)} linii (łącznie z headerem)")
+                        print(f"🔍 DEBUG: Liczba wierszy danych: {len(lines) - 1}")
+                    except:
+                        pass
+                    
                     return response.content
                 else:
                     if response.status_code == 404:

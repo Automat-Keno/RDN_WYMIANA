@@ -16,6 +16,15 @@ from database.mongo_connector import OptimizedMongoConnector
 
 def load_config(config_path: str = 'config.json') -> Dict[str, Any]:
     """Ładuje konfigurację z pliku JSON z obsługą zmiennych środowiskowych."""
+    
+    # Najpierw sprawdzaj czy istnieje config.local.json (dla developmentu)
+    local_config_path = 'config.local.json'
+    if os.path.exists(local_config_path):
+        print(f"📄 Wczytywanie konfiguracji z: {local_config_path}")
+        config_path = local_config_path
+    else:
+        print(f"📄 Wczytywanie konfiguracji z: {config_path}")
+    
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
