@@ -77,15 +77,31 @@ class OptimizedDataProcessor:
                 if value == '-':
                     row[column] = None
                 elif column == 'Godzina':
-                    if value == "2A":
+                    # Obsługa przedziałów czasowych (np. '00:00-00:15')
+                    if '-' in str(value) and ':' in str(value):
+                        # Wyciągnij godzinę z początku przedziału
+                        start_time = value.split('-')[0].strip()
+                        hour = int(start_time.split(':')[0])
+                        row[column] = hour
+                    elif value == "2A":
                         row[column] = 2
+                    elif value == '':
+                        row[column] = None
                     else:
-                        row[column] = int(value) - 1
+                        try:
+                            row[column] = int(value) - 1
+                        except ValueError:
+                            print(f"Nieoczekiwany format godziny: {value}")
+                            row[column] = None
                 else:
                     if value == '':
                         row[column] = None
                     elif value is not None:
-                        row[column] = int(value.replace('\xa0', ''))
+                        try:
+                            row[column] = int(value.replace('\xa0', ''))
+                        except ValueError:
+                            print(f"Nie można przekonwertować {column}='{value}' na int")
+                            row[column] = None
 
             # Konwersja kolumn float
             for column in self.float_cols:
@@ -183,4 +199,4 @@ class OptimizedDataProcessor:
             
         except Exception as e:
             print(f"❌ Błąd podczas przetwarzania: {e}")
-            return False 
+            return False
